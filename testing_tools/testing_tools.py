@@ -1,7 +1,5 @@
-import pandas as pd
 import numpy as np
 from scipy.sparse import csr_matrix
-from sklearn.model_selection import train_test_split
 import implicit
 
 
@@ -18,14 +16,12 @@ def create_matrix(ratings, no_users, no_movies):
 def train_test(ratings, N):
     """Splits the ratings into the train set and the test set, where for each user
     exactly N ratings are delegated to the test set."""
-    train = pd.DataFrame()
-    test = pd.DataFrame()
 
-    for user in list(ratings.userId.unique()):
-        ratings_user = ratings.loc[ratings['userId'] == user]
-        train_user, test_user = train_test_split(ratings_user, test_size=N)
-        train = pd.concat([train, train_user])
-        test = pd.concat([test, test_user])
+    def fn(obj):
+        return obj.loc[np.random.choice(obj.index, N, False), :]
+    test = ratings.groupby('userId', as_index=False).apply(fn)
+    test_set = test.index.get_level_values(1)
+    train = ratings.drop(test_set)
 
     return train, test
 

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from user_item.user_item import train_test, LOO_HR_BPR
+from testing_tools import train_test, LOO_HR_BPR
 
 loc = r"/Users/juliannapiskorz/OneDrive - Imperial College London/Model-" \
     r"based ML recommenders/MovieLens Data/ratings.csv"
@@ -21,13 +21,18 @@ train, test = train_test(ratings, 1)
 bpr_params = {
     'factors': 30,
     'regularization': 0.1,
-    'learning_rate': 0.01,
-    'iterations': 4000
+    'learning_rate': 0.01
 }
 
 res = []
 
-for _ in range(3):
+for n in [200, 250, 400, 600, 1000]:
+    bpr_params = {
+        'factors': 30,
+        'regularization': 0.1,
+        'learning_rate': 0.01,
+        'iterations': n
+    }
     res += [LOO_HR_BPR(list(range(610)), train,
                        test, bpr_params, 610, 9724, 20)]
 
