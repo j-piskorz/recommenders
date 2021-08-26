@@ -45,6 +45,9 @@ def LOO_HR_BPR(sample, train, test, bpr_params, no_users, no_movies,
 
     hits = 0
 
+    if sample == 'all':
+        sample = list(range(no_users))
+
     for user in sample:
         predict = bpr.recommend(user, R_train.T, N)
         predict = [x[0] for x in predict]
@@ -81,7 +84,7 @@ def grid_search(grid, train, test, no_users, no_movies, n_iters, N):
     hr_max = [item['hr'] for item in results]
     best = hr_max.index(max(hr_max))
 
-    return best, results
+    return results[best]
 
 
 def sparse_users(ratings, no_users):
