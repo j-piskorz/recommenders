@@ -1,19 +1,8 @@
 import pandas as pd
-import numpy as np
-from testing_tools import train_test, grid_search
+from testing_tools import train_test, grid_search, relabel
 
-loc = r"/Users/juliannapiskorz/OneDrive - Imperial College London/Model-" \
-    r"based ML recommenders/MovieLens Data/ratings.csv"
-ratings = pd.read_csv(loc)
-
-# relable the users and movies
-movies = list(ratings.movieId.astype('int').unique())
-change = pd.Series(list(range(9724)), index=movies)
-ratings['movieId'] = ratings['movieId'].map(change)
-ratings['userId'] = np.array(ratings['userId']) - 1
-
-# change the ratings to the unary data
-ratings["rating"] = 1
+ratings = pd.read_csv("ratings.csv")
+ratings = relabel(ratings)
 
 # set the environment for tests
 train, test = train_test(ratings, 1)

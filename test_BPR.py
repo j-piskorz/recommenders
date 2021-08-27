@@ -1,19 +1,8 @@
 import pandas as pd
-import numpy as np
-from testing_tools import train_test, LOO_HR_BPR
+from testing_tools import train_test, LOO_HR_BPR, relabel
 
-loc = r"/Users/juliannapiskorz/OneDrive - Imperial College London/Model-" \
-    r"based ML recommenders/MovieLens Data/ratings.csv"
-ratings = pd.read_csv(loc)
-
-# relable the users and movies
-movies = list(ratings.movieId.astype('int').unique())
-change = pd.Series(list(range(9724)), index=movies)
-ratings['movieId'] = ratings['movieId'].map(change)
-ratings['userId'] = np.array(ratings['userId']) - 1
-
-# change the ratings to the unary data
-ratings["rating"] = 1
+ratings = pd.read_csv("ratings.csv")
+ratings = relabel(ratings)
 
 # set the environment for tests
 train, test = train_test(ratings, 1)
@@ -33,7 +22,7 @@ for n in [200, 250, 400, 600, 1000]:
         'learning_rate': 0.01,
         'iterations': n
     }
-    res += [LOO_HR_BPR(list(range(610)), train,
+    res += [LOO_HR_BPR([], train,
                        test, bpr_params, 610, 9724, 20)]
 
 print(res)

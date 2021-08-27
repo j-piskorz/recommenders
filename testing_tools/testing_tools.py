@@ -4,6 +4,23 @@ from scipy.sparse import csr_matrix
 import implicit
 
 
+def relabel(ratings):
+    ratings['rating'] = 1
+
+    no_users = len(ratings.userId.unique())
+    no_movies = len(ratings.movieId.unique())
+
+    movies = list(ratings.movieId.unique())
+    change = pd.Series(list(range(no_movies)), index=movies)
+    ratings['movieId'] = ratings['movieId'].map(change)
+
+    users = list(ratings.userId.unique())
+    change = pd.Series(list(range(no_users)), index=users)
+    ratings['userId'] = ratings['userId'].map(change)
+
+    return ratings
+
+
 def create_matrix(ratings, no_users, no_movies):
     R = csr_matrix(
             (ratings['rating'], (ratings['movieId'], ratings['userId'])),
@@ -45,7 +62,7 @@ def LOO_HR_BPR(sample, train, test, bpr_params, no_users, no_movies,
 
     hits = 0
 
-    if sample == 'all':
+    if sample == []:
         sample = list(range(no_users))
 
     for user in sample:
@@ -72,8 +89,7 @@ def grid_search(grid, train, test, no_users, no_movies, n_iters, N):
                     dtype=np.float64)
                 bpr.fit(R_train)
                 hr = LOO_HR_BPR(
-                    list(range(no_users)),
-                    train, test, [], no_users,
+                    None, train, test, [], no_users,
                     no_movies, N, bpr)
                 results.append({
                     'hr': hr,
@@ -120,23 +136,11 @@ def sparse_movies(ratings, no_movies):
     return ratings
 
 
-def sparse_ratio(ratings, ratio, min_per_user, min_per_movie):
-    min_int = min_per_user // ratio
-    good = ratings.groupby(['userId']).count()
-    good = good.loc[ratings.groupby(['userId']).count().movieId > min_int]
-    good = good.index
-    ratings = ratings.loc[ratings['userId'].isin(good)]
-
+def sparse_ratio(ratings, ratio):
     ratings, _ = train_test(ratings, (1 - ratio))
 
-    good = ratings.groupby(['movieId']).count()
-    good = good.loc[(ratings.groupby(['movieId']).count().userId
-                     >= min_per_movie)]
-    good = good.index
-    ratings = ratings.loc[ratings['movieId'].isin(good)]
-
     good = ratings.groupby(['userId']).count()
-    good = good.loc[ratings.groupby(['userId']).count().movieId > min_per_user]
+    good = good.loc[ratings.groupby(['userId']).count().movieId > 2]
     good = good.index
     ratings = ratings.loc[ratings['userId'].isin(good)]
 
@@ -149,4 +153,4 @@ def sparse_ratio(ratings, ratio, min_per_user, min_per_movie):
     change = pd.Series(list(range(no_users)), index=users)
     ratings['userId'] = ratings['userId'].map(change)
 
-    return no_users, no_movies, ratings
+    return ratings

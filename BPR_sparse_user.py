@@ -1,19 +1,10 @@
 import pandas as pd
 import numpy as np
 from testing_tools import train_test, LOO_HR_BPR, grid_search, sparse_users
+from testing_tools import relabel
 
-loc = r"/Users/juliannapiskorz/OneDrive - Imperial College London/Model-" \
-    r"based ML recommenders/MovieLens Data/ratings.csv"
-ratings = pd.read_csv(loc)
-
-# relable the users and movies
-movies = list(ratings.movieId.astype('int').unique())
-change = pd.Series(list(range(9724)), index=movies)
-ratings['movieId'] = ratings['movieId'].map(change)
-ratings['userId'] = np.array(ratings['userId']) - 1
-
-# change the ratings to the unary data
-ratings["rating"] = 1
+ratings = pd.read_csv("ratings.csv")
+ratings = relabel(ratings)
 
 # sparse user test
 limited_no_users = [50, 75, 100, 150, 200, 300, 400, 500, 600]
@@ -44,7 +35,7 @@ for no_users in limited_no_users:
     for _ in range(9):
         train, test = train_test(ratings_sparse, 1)
         res.append(LOO_HR_BPR(
-            'all', train, test, bpr_params,
+            [], train, test, bpr_params,
             no_users, no_movies, 20))
 
     results[no_users] = np.mean(res)

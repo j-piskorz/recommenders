@@ -1,12 +1,9 @@
-from testing_tools import create_matrix
+from memory_based import LOO_HR_itemCF, cos_sim, sim_matrix
 import pandas as pd
 import numpy as np
-from implicit.nearest_neighbours import CosineRecommender
-from testing_tools import train_test, LOO_HR_BPR
+from testing_tools import train_test
 
-loc = r"/Users/juliannapiskorz/OneDrive - Imperial College London/Model-" \
-    r"based ML recommenders/MovieLens Data/ratings.csv"
-ratings = pd.read_csv(loc)
+ratings = pd.read_csv("ratings.csv")
 
 # relable the users and movies
 movies = list(ratings.movieId.astype('int').unique())
@@ -20,8 +17,7 @@ ratings["rating"] = 1
 # set the environment for tests
 train, test = train_test(ratings, 1)
 
-R_train = create_matrix(train, 610, 9724)
-rec = CosineRecommender(K=30)
-rec.fit(R_train)
+S = sim_matrix(ratings, 9724, cos_sim, 1000, 30)
 
-print(LOO_HR_BPR(list(range(610)), train, test, [], 610, 9724, 20, rec))
+smpl = np.random.choice(list(range(610)), 100)
+print(LOO_HR_itemCF(smpl, train, test, 610, S, 20))
