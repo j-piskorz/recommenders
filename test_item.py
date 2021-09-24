@@ -17,7 +17,7 @@ ratings["rating"] = 1
 # set the environment for tests
 train, test = train_test(ratings, 1)
 
-S = sim_matrix(ratings, 9724, cos_sim, 1000, 30)
+S = sim_matrix(ratings, 9724, cos_sim, 30)
 
 smpl = np.random.choice(list(range(610)), 100)
 print(LOO_HR_itemCF(smpl, train, test, 610, S, 20))

@@ -1,7 +1,7 @@
 #!/bin/bash
-#PBS -N BPR
+#PBS -N item_user_full_2
 #PBS -m be
-#PBS -q standard
+#PBS -q jumbo_avx
 
 cd ${HOME}/recommenders
-/usr/bin/python3 < BPR_sparse_user.py > BPR.out
+/usr/bin/python3 < item_sparse_user.py > item_user_full_2.out

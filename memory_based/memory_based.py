@@ -4,6 +4,8 @@ from tqdm import trange
 
 
 def cos_sim(user1, user2):  # symmetric
+    if len(user1) == 0 or len(user2) == 0:
+        return 0.
     user1 = set(user1)
     user2 = set(user2)
 
@@ -11,6 +13,8 @@ def cos_sim(user1, user2):  # symmetric
 
 
 def cond_sim(user1, user2):  # asymmetric
+    if len(user1) == 0 or len(user2) == 0:
+        return 0.
     user1 = set(user1)
     user2 = set(user2)
 
@@ -18,6 +22,8 @@ def cond_sim(user1, user2):  # asymmetric
 
 
 def jacc_sim(user1, user2):  # symmetric
+    if len(user1) == 0 or len(user2) == 0:
+        return 0.
     user1 = set(user1)
     user2 = set(user2)
 
@@ -74,7 +80,7 @@ def LOO_HR_userCF(sample, train, test, no_users, no_movies, sim, N, k):
 
     hits = 0
 
-    if sample == []:
+    if type(sample) != list:
         sample = list(range(no_users))
 
     loop = trange(len(sample), desc="Calculating hit rank")
@@ -89,27 +95,24 @@ def LOO_HR_userCF(sample, train, test, no_users, no_movies, sim, N, k):
     return hits/len(sample)
 
 
-def sim_matrix(ratings, no_movies, sim, top, k):
+def sim_matrix(ratings, no_movies, sim, k):
     # all users who rated given movie:
     rated_movies = [list(ratings.loc[ratings.movieId == i].userId.unique())
                     for i in range(no_movies)]
     # number of users which watched given movie
-    top_rated = ratings.groupby(['movieId']).count().userId
-    top_rated = top_rated.sort_values(ascending=False).index[0:top]
 
-    rated_movies_top = {item: rated_movies[item] for item in top_rated}
+    S = np.array([[np.float32(sim(rated_movies[i], rated_movies[j]))
+                  for i in range(no_movies)] for j in range(no_movies)])
+    S = pd.DataFrame(S, columns=list(range(no_movies)),
+                     index=list(range(no_movies)))
 
-    S = np.array([[sim(rated_movies_top[i], rated_movies_top[j])
-                  for i in top_rated] for j in top_rated])
-    S = pd.DataFrame(S, columns=top_rated, index=top_rated)
-
-    for movie in top_rated:
+    for movie in range(no_movies):
         S.loc[movie, movie] = 0.
         m = list(S[movie])
         m.sort(reverse=True)
-        k_min = m[k]
+        k_min = m[k - 1]
         S[movie] = [S.loc[movie, item] if S.loc[movie, item] >= k_min else 0.
-                    for item in top_rated]
+                    for item in range(no_movies)]
 
     return S
 
@@ -130,17 +133,16 @@ def itemCF(active_user, ratings, S, N):
         N: int
             the desired number of recommended items
     """
-    top_rated = list(S.index)
+    movies = S.index
     rated = list(ratings.loc[ratings.userId == active_user].movieId.unique())
-    rated_from_top = list(set(rated) & set(top_rated))
 
     user_ratings = np.array([1. if movie in rated else 0.
-                             for movie in top_rated])
+                             for movie in movies])
 
     rec = [np.dot(user_ratings, np.array(S[movie]))/np.sum(S[movie])
-           for movie in top_rated]
-    rec = pd.Series(rec, index=top_rated).sort_values(ascending=False)
-    rec = rec.drop(rated_from_top)[0:N]
+           for movie in movies]
+    rec = pd.Series(rec, index=movies).sort_values(ascending=False)
+    rec = rec.drop(rated)[0:N]
 
     return rec
 
@@ -153,7 +155,7 @@ def LOO_HR_itemCF(sample, train, test, no_users, S, N):
 
     hits = 0
 
-    if sample == []:
+    if type(sample) != list:
         sample = list(range(no_users))
 
     loop = trange(len(sample), desc="Calculating hit rank")
@@ -166,3 +168,34 @@ def LOO_HR_itemCF(sample, train, test, no_users, S, N):
             hits += 1
 
     return hits/len(sample)
+
+
+def grid_search_user(k_list, sim, train, test, no_users, no_movies):
+    results = []
+    for k in k_list:
+        if k > no_users:
+            results.append(0)
+        else:
+            results.append(LOO_HR_userCF(
+                'all', train, test,
+                no_users, no_movies,
+                sim, 20, k))
+
+    best = results.index(max(results))
+
+    return k_list[best], results[best]
+
+
+def grid_search_item(k_list, sim, train, test, no_users, no_movies):
+    results = []
+    for k in k_list:
+        if k >= no_movies:
+            results.append(0)
+        else:
+            S = sim_matrix(train, no_movies, sim, k)
+            results.append(LOO_HR_itemCF(
+                'all', train, test, no_users, S, 20))
+
+    best = results.index(max(results))
+
+    return k_list[best], results[best]

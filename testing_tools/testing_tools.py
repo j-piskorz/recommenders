@@ -62,7 +62,7 @@ def LOO_HR_BPR(sample, train, test, bpr_params, no_users, no_movies,
 
     hits = 0
 
-    if sample == []:
+    if type(sample) != list:
         sample = list(range(no_users))
 
     for user in sample:
@@ -89,7 +89,7 @@ def grid_search(grid, train, test, no_users, no_movies, n_iters, N):
                     dtype=np.float64)
                 bpr.fit(R_train)
                 hr = LOO_HR_BPR(
-                    None, train, test, [], no_users,
+                    'all', train, test, [], no_users,
                     no_movies, N, bpr)
                 results.append({
                     'hr': hr,
@@ -124,6 +124,11 @@ def sparse_movies(ratings, no_movies):
     movies = list(ratings.movieId.unique())
     movies = np.random.choice(movies, no_movies, replace=False)
     ratings = ratings.loc[ratings['movieId'].isin(movies)]
+
+    good = ratings.groupby(['userId']).count()
+    good = good.loc[ratings.groupby(['userId']).count().movieId > 2]
+    good = good.index
+    ratings = ratings.loc[ratings['userId'].isin(good)]
 
     no_users = len(ratings.userId.unique())
 
